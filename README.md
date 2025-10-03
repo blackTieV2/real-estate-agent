@@ -1,6 +1,6 @@
 # Set up
 ## Environment
-* Create a virtual environment (python 3.12) and activate it
+* Create a virtual environment and activate it
 * Run `pip install -r requiements.txt`
 * Now you submit queries by running `python real_estate_agent.py <message>`
 * Make sure all files are in the same folder. Or you will need to adjust the paths in real_estate_agent.py
