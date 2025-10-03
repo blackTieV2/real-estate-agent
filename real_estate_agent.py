@@ -34,7 +34,7 @@ model = ChatOpenAI(
 # ---------------------
 client = MultiServerMCPClient(
     {
-        "property data": {
+        "PropertyData": {
             "command": "python",
             "args": ["./property_data_mcp_server.py"],  # Use full path if needed
             "transport": "stdio",
