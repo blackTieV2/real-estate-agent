@@ -1,0 +1,7 @@
+langchain-mcp-adapters
+langgraph 
+langchain[openai]
+langchain-community
+langchain-tavily
+duckduckgo-search
+ddgs
