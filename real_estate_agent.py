@@ -1,6 +1,7 @@
 import os
 import asyncio
 
+from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
 from langchain_core.tools import tool
@@ -16,16 +17,35 @@ from langchain_tavily import TavilySearch
 from langchain_community.tools import DuckDuckGoSearchRun
 
 
-os.environ["OPENROUTER_API_KEY"] = "your-openrouter-key"
-os.environ["TAVILY_API_KEY"] = "your_tavily_api_key_here"
+# Load local secrets from .env without hard-coding them in source control.
+load_dotenv()
+
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+TAVILY_API_KEY = os.getenv("TAVILY_API_KEY")
+
+missing_keys = [
+    name
+    for name, value in {
+        "OPENROUTER_API_KEY": OPENROUTER_API_KEY,
+        "TAVILY_API_KEY": TAVILY_API_KEY,
+    }.items()
+    if not value
+]
+
+if missing_keys:
+    raise RuntimeError(
+        "Missing required environment variable(s): "
+        + ", ".join(missing_keys)
+        + ". Copy .env.example to .env and add your API keys."
+    )
 
 
 OPENROUTER_MODEL = "openai/gpt-oss-120b"
 
 model = ChatOpenAI(
     openai_api_base="https://openrouter.ai/api/v1",
-    openai_api_key=os.environ["OPENROUTER_API_KEY"],
-    model=OPENROUTER_MODEL
+    openai_api_key=OPENROUTER_API_KEY,
+    model=OPENROUTER_MODEL,
 )
 
 
@@ -43,7 +63,7 @@ client = MultiServerMCPClient(
             "command": "python",
             "args": ["./crm_mcp_server.py"],  # Use full path if needed
             "transport": "stdio",
-        }
+        },
     }
 )
 
@@ -69,7 +89,7 @@ def estimate_property_price_tool(bedrooms: int, bathrooms: int) -> str:
     """
     if bedrooms < 1 or bathrooms < 1:
         return "Please provide a valid number of bedrooms and bathrooms (at least one each)."
-    
+
     base_price = 50000
     price = base_price + bedrooms * 75000 + bathrooms * 30000
     return f"Estimated property price: ${price:,.0f}"
@@ -81,11 +101,12 @@ def estimate_property_price_tool(bedrooms: int, bathrooms: int) -> str:
 tools = None
 graph = None
 
+
 async def agent_setup():
     global tools, graph
     mcp_tools = await client.get_tools()
 
-    # merge MCP tools + non-MCP tools
+    # Merge MCP tools + non-MCP tools.
     tools = mcp_tools + [
         tavily_search_tool,
         duckduckgo_search_tool,
@@ -116,12 +137,12 @@ async def agent_setup():
 # MAIN ENTRY POINT
 # ---------------------
 async def main(user_input: str):
-    # ensure setup was completed, or run setup here on first run
+    # Ensure setup was completed, or run setup here on first run.
     if tools is None or graph is None:
         await agent_setup()
 
     response = await graph.ainvoke({"messages": [HumanMessage(content=user_input)]})
-    
+
     for msg in response["messages"]:
         if isinstance(msg, HumanMessage):
             print(f"Human: {msg.content}")
@@ -137,7 +158,8 @@ async def main(user_input: str):
 
 if __name__ == "__main__":
     import sys
-    user_input = " ".join(sys.argv[1:])  # get input from command line
+
+    user_input = " ".join(sys.argv[1:])  # Get input from command line.
     if not user_input:
         print("Usage: python real_estate_agent.py <message>")
         print("Please provide a message.")
