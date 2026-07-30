@@ -134,26 +134,80 @@ async def agent_setup():
 
 
 # ---------------------
-# MAIN ENTRY POINT
+# STRUCTURED AGENT RUNNER
 # ---------------------
-async def main(user_input: str):
-    # Ensure setup was completed, or run setup here on first run.
+async def run_agent(user_input: str) -> dict:
+    """
+    Run the LangGraph agent and return structured results.
+
+    The structured result is suitable for Phoenix experiments,
+    automated evaluation, and the command-line display wrapper.
+    """
     if tools is None or graph is None:
         await agent_setup()
 
-    response = await graph.ainvoke({"messages": [HumanMessage(content=user_input)]})
+    response = await graph.ainvoke(
+        {"messages": [HumanMessage(content=user_input)]}
+    )
 
-    for msg in response["messages"]:
-        if isinstance(msg, HumanMessage):
-            print(f"Human: {msg.content}")
-        elif isinstance(msg, AIMessage):
-            if msg.additional_kwargs.get("tool_calls"):
-                print(f"AI (tool call requested): {msg.content}")
-                print(f"Tool call details: {msg.additional_kwargs['tool_calls']}")
-            else:
-                print(f"AI: {msg.content}")
-        elif isinstance(msg, ToolMessage):
-            print(f"Tool ({msg.name}) result: {msg.content}")
+    tool_calls = []
+    tool_results = []
+    final_answer = ""
+
+    for message in response["messages"]:
+        if isinstance(message, AIMessage):
+            for call in message.tool_calls or []:
+                tool_calls.append(
+                    {
+                        "name": call.get("name"),
+                        "args": call.get("args", {}),
+                        "id": call.get("id"),
+                    }
+                )
+
+            # The last AI message without tool calls is the user-facing response.
+            if message.content and not message.tool_calls:
+                final_answer = str(message.content)
+
+        elif isinstance(message, ToolMessage):
+            tool_results.append(
+                {
+                    "name": message.name,
+                    "content": str(message.content),
+                    "tool_call_id": message.tool_call_id,
+                }
+            )
+
+    return {
+        "input": user_input,
+        "answer": final_answer,
+        "tool_calls": tool_calls,
+        "tool_results": tool_results,
+        "messages": response["messages"],
+    }
+
+
+# ---------------------
+# COMMAND-LINE DISPLAY
+# ---------------------
+async def main(user_input: str) -> None:
+    result = await run_agent(user_input)
+
+    print(f"Human: {result['input']}")
+
+    for tool_call in result["tool_calls"]:
+        print(
+            f"Tool requested: {tool_call['name']} "
+            f"with arguments {tool_call['args']}"
+        )
+
+    for tool_result in result["tool_results"]:
+        print(
+            f"Tool ({tool_result['name']}) result: "
+            f"{tool_result['content']}"
+        )
+
+    print(f"AI: {result['answer']}")
 
 
 if __name__ == "__main__":
