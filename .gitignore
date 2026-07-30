@@ -25,3 +25,7 @@ dist/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Local SQLite runtime databases
+crm_db.db
+property_data.db

@@ -39,8 +39,11 @@ if missing_keys:
         + ". Copy .env.example to .env and add your API keys."
     )
 
+from phoenix_setup import configure_phoenix
 
-OPENROUTER_MODEL = "openai/gpt-oss-120b"
+configure_phoenix()
+
+OPENROUTER_MODEL = "openrouter/free"
 
 model = ChatOpenAI(
     openai_api_base="https://openrouter.ai/api/v1",
