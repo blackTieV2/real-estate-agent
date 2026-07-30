@@ -1,7 +1,8 @@
 langchain-mcp-adapters
-langgraph 
+langgraph
 langchain[openai]
 langchain-community
 langchain-tavily
 duckduckgo-search
 ddgs
+python-dotenv
